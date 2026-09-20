@@ -386,6 +386,11 @@ const RULE_FIELDS: { key: keyof ConstraintThresholds; label: string; hint: strin
   { key: "dailyWarningHours", label: "Daily warning threshold (hours)", hint: "Shows a warning (not a block) once someone crosses this many hours in a day." },
   { key: "weeklyWarningHours", label: "Weekly warning threshold (hours)", hint: "Flags approaching overtime once someone crosses this many hours in a week." },
   { key: "weeklyFullTimeHours", label: "Weekly full-time / overtime threshold (hours)", hint: "Flags overtime once someone crosses this many hours in a week." },
+  { key: "sixthConsecutiveDayWarning", label: "Consecutive-day warning (days)", hint: "Shows a warning once someone would work this many days in a row." },
+  { key: "seventhConsecutiveDayBlock", label: "Consecutive-day hard block (days)", hint: "Blocks the assignment past this many consecutive days unless a manager documents an override." },
+  { key: "maxPendingSwapsPerStaff", label: "Max pending swaps/drops per staff", hint: "A staff member can't have more open swap or drop requests than this at once." },
+  { key: "dropExpiryHoursBeforeShift", label: "Drop expiry window (hours before shift)", hint: "An unclaimed dropped shift automatically expires this many hours before it starts." },
+  { key: "publishEditCutoffHours", label: "Publish edit/unpublish cutoff (hours)", hint: "Editing or unpublishing a shift this close to its start requires a manager override with a reason." },
 ];
 
 function RulesPanel() {

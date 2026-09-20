@@ -19,6 +19,7 @@ export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => 
   const assignUser = useScheduleStore((s) => s.assignUser);
   const unassignUser = useScheduleStore((s) => s.unassignUser);
   const updateShift = useScheduleStore((s) => s.updateShift);
+  const unpublishShift = useScheduleStore((s) => s.unpublishShift);
   const showToast = useUiStore((s) => s.showToast);
 
   // Version captured when the drawer opened — used to detect a concurrent
@@ -51,6 +52,9 @@ export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => 
   const [overrideReason, setOverrideReason] = useState("");
   const [check, setCheck] = useState<AssignmentCheck | null>(null);
   const [checking, setChecking] = useState(false);
+  const [unpublishBlockedReason, setUnpublishBlockedReason] = useState<string | null>(null);
+  const [unpublishOverrideReason, setUnpublishOverrideReason] = useState("");
+  const [unpublishing, setUnpublishing] = useState(false);
 
   const candidates = useMemo(
     () =>
@@ -126,6 +130,30 @@ export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => 
     }
   }
 
+  /** Requirement #2: "Unpublish/edit a schedule before a configurable
+   * cutoff." First attempt is a plain unpublish; if the backend blocks it
+   * for being inside the cutoff window, we surface its exact reason and
+   * offer the same documented-override pattern used for the 7th-day
+   * assignment block above, rather than a dead end. */
+  async function handleUnpublish(override = false) {
+    setUnpublishing(true);
+    const result = await unpublishShift(liveShift.id, user.id, {
+      expectedVersion: openedVersion,
+      overrideCutoff: override,
+      overrideReason: override ? unpublishOverrideReason : undefined,
+    });
+    setUnpublishing(false);
+    if (result.success) {
+      showToast("info", "Shift unpublished — it's back to a draft and hidden from staff.");
+      setUnpublishBlockedReason(null);
+      setUnpublishOverrideReason("");
+    } else if (result.conflict) {
+      showToast("error", result.reason ?? "This shift changed since you opened it.");
+    } else {
+      setUnpublishBlockedReason(result.reason ?? "This shift can't be unpublished right now.");
+    }
+  }
+
   if (!location) return null;
 
   return (
@@ -142,13 +170,58 @@ export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => 
         )}
 
         <div className="rounded-card bg-paper-50 p-3">
-          <p className="font-heading text-sm font-semibold text-ink-900">{location.name}</p>
-          <p className="text-sm text-ink-600">
-            {formatShiftRange(liveShift, location)} · {liveShift.skillRequired.replace("_", " ")}
-          </p>
-          <button onClick={handleNudgeLater} className="mt-2 text-xs font-semibold text-navy-800 hover:underline">
-            Move shift 1 hour later
-          </button>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-heading text-sm font-semibold text-ink-900">{location.name}</p>
+              <p className="text-sm text-ink-600">
+                {formatShiftRange(liveShift, location)} · {liveShift.skillRequired.replace("_", " ")}
+              </p>
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                liveShift.status === "published" ? "bg-signal-greenBg text-signal-green" : "bg-ink-900/5 text-ink-600"
+              }`}
+            >
+              {liveShift.status === "published" ? "Published" : "Draft"}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <button onClick={handleNudgeLater} className="text-xs font-semibold text-navy-800 hover:underline">
+              Move shift 1 hour later
+            </button>
+            {liveShift.status === "published" && (
+              <button
+                onClick={() => handleUnpublish(false)}
+                disabled={unpublishing}
+                className="text-xs font-semibold text-signal-red hover:underline"
+              >
+                Unpublish
+              </button>
+            )}
+          </div>
+          {unpublishBlockedReason && (
+            <div className="mt-3 rounded-card border border-signal-amber/40 bg-signal-amberBg p-3">
+              <p className="mb-2 text-xs text-ink-900">{unpublishBlockedReason}</p>
+              <label className="mb-1 block text-xs font-semibold text-ink-900" htmlFor="unpublish-override-reason">
+                Manager override reason (required)
+              </label>
+              <textarea
+                id="unpublish-override-reason"
+                value={unpublishOverrideReason}
+                onChange={(e) => setUnpublishOverrideReason(e.target.value)}
+                rows={2}
+                className="w-full rounded-card border border-ink-900/15 px-3 py-2 text-sm"
+                placeholder="e.g. Shift no longer needed, covering staff already notified directly."
+              />
+              <button
+                className="btn-danger mt-2"
+                disabled={!unpublishOverrideReason.trim() || unpublishing}
+                onClick={() => handleUnpublish(true)}
+              >
+                Unpublish with documented override
+              </button>
+            </div>
+          )}
         </div>
 
         <div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { addDays, startOfWeek } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuthStore } from "@/store/authStore";
 import { useScheduleStore } from "@/store/scheduleStore";
@@ -8,8 +8,9 @@ import { useSwapStore } from "@/store/swapStore";
 import { useUiStore } from "@/store/uiStore";
 import { ShiftCard } from "@/components/schedule/ShiftCard";
 import { AssignDrawer } from "@/components/schedule/AssignDrawer";
+import { CreateShiftModal } from "@/components/schedule/CreateShiftModal";
 import type { Shift } from "@/types";
-import { AlertTriangleIcon, CheckIcon, XIcon } from "@/components/icons/Icon";
+import { AlertTriangleIcon, CheckIcon, XIcon, PlusIcon } from "@/components/icons/Icon";
 import { Avatar } from "@/components/common/Avatar";
 import { formatShiftRange } from "@/lib/time";
 
@@ -32,6 +33,8 @@ export function ScheduleBoardPage() {
 
   const [activeLocationId, setActiveLocationId] = useState(locations[0]?.id);
   const [openShift, setOpenShift] = useState<Shift | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createPrefillDate, setCreatePrefillDate] = useState<string | undefined>(undefined);
 
   const location = locations.find((l) => l.id === activeLocationId) ?? locations[0];
 
@@ -52,6 +55,11 @@ export function ScheduleBoardPage() {
   }
 
   const understaffedCount = locationShifts.filter((s) => s.assignedUserIds.length < s.headcountNeeded).length;
+
+  function openCreateForDay(day: Date) {
+    setCreatePrefillDate(formatInTimeZone(day, location.timezone, "yyyy-MM-dd"));
+    setShowCreateModal(true);
+  }
 
   async function handlePublish() {
     if (!location) return;
@@ -150,6 +158,9 @@ export function ScheduleBoardPage() {
               {understaffedCount} shift{understaffedCount > 1 ? "s" : ""} need coverage
             </span>
           )}
+          <button className="btn-secondary" onClick={() => { setCreatePrefillDate(undefined); setShowCreateModal(true); }}>
+            <PlusIcon size={14} /> Add shift
+          </button>
           <button className="btn-primary" onClick={handlePublish}>
             Publish this week
           </button>
@@ -168,13 +179,24 @@ export function ScheduleBoardPage() {
             </p>
             <div className="space-y-2">
               {shiftsForDay(day).length === 0 ? (
-                <p className="rounded-ticket border border-dashed border-ink-900/10 px-2 py-4 text-center text-xs text-ink-400">
-                  No shifts
-                </p>
+                <button
+                  onClick={() => openCreateForDay(day)}
+                  className="w-full rounded-ticket border border-dashed border-ink-900/10 px-2 py-4 text-center text-xs text-ink-400 transition hover:border-gold-500 hover:text-gold-600"
+                >
+                  No shifts · <span className="underline">+ Add</span>
+                </button>
               ) : (
-                shiftsForDay(day).map((shift) => (
-                  <ShiftCard key={shift.id} shift={shift} location={location} onClick={() => setOpenShift(shift)} />
-                ))
+                <>
+                  {shiftsForDay(day).map((shift) => (
+                    <ShiftCard key={shift.id} shift={shift} location={location} onClick={() => setOpenShift(shift)} />
+                  ))}
+                  <button
+                    onClick={() => openCreateForDay(day)}
+                    className="flex w-full items-center justify-center gap-1 rounded-ticket border border-dashed border-ink-900/10 px-2 py-1.5 text-xs text-ink-400 transition hover:border-gold-500 hover:text-gold-600"
+                  >
+                    <PlusIcon size={12} /> Add another
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -185,6 +207,14 @@ export function ScheduleBoardPage() {
         <AssignDrawer
           shift={shifts.find((s) => s.id === openShift.id) ?? openShift}
           onClose={() => setOpenShift(null)}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateShiftModal
+          location={location}
+          initialDate={createPrefillDate}
+          onClose={() => setShowCreateModal(false)}
         />
       )}
     </AppShell>

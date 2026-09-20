@@ -23,6 +23,17 @@ export interface ConstraintThresholds {
   dailyWarningHours: number;
   weeklyWarningHours: number;
   weeklyFullTimeHours: number;
+  /** The remaining 5 backend-configurable thresholds. checkAssignment()
+   * below doesn't read these three workflow-policy ones (they're enforced
+   * server-side in SwapService, not as an hour/day constraint) — they live
+   * here purely so the admin Setup form has a single source-of-truth shape
+   * matching the backend's ThresholdsDto exactly, rather than silently
+   * dropping the fields it doesn't personally need. */
+  maxPendingSwapsPerStaff: number;
+  dropExpiryHoursBeforeShift: number;
+  publishEditCutoffHours: number;
+  sixthConsecutiveDayWarning: number;
+  seventhConsecutiveDayBlock: number;
 }
 
 export const DEFAULT_CONSTRAINT_THRESHOLDS: ConstraintThresholds = {
@@ -31,6 +42,11 @@ export const DEFAULT_CONSTRAINT_THRESHOLDS: ConstraintThresholds = {
   dailyWarningHours: 8,
   weeklyWarningHours: 35,
   weeklyFullTimeHours: 40,
+  maxPendingSwapsPerStaff: 3,
+  dropExpiryHoursBeforeShift: 24,
+  publishEditCutoffHours: 48,
+  sixthConsecutiveDayWarning: 6,
+  seventhConsecutiveDayBlock: 7,
 };
 
 /**
@@ -138,17 +154,17 @@ export function checkAssignment(
 
   // 7. Consecutive days worked
   const consecutive = consecutiveDaysIncluding(target, usersOtherShifts, location);
-  if (consecutive >= 7) {
+  if (consecutive >= thresholds.seventhConsecutiveDayBlock) {
     violations.push({
       code: "SEVENTH_CONSECUTIVE_DAY",
       severity: "block",
-      message: `This would be ${user.name}'s 7th consecutive day worked. Requires a manager override with a documented reason.`,
+      message: `This would be ${user.name}'s ${thresholds.seventhConsecutiveDayBlock}th consecutive day worked. Requires a manager override with a documented reason.`,
     });
-  } else if (consecutive === 6) {
+  } else if (consecutive === thresholds.sixthConsecutiveDayWarning) {
     violations.push({
       code: "SEVENTH_CONSECUTIVE_DAY",
       severity: "warning",
-      message: `This would be ${user.name}'s 6th consecutive day worked.`,
+      message: `This would be ${user.name}'s ${thresholds.sixthConsecutiveDayWarning}th consecutive day worked.`,
     });
   }
 

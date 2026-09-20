@@ -83,6 +83,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         dailyWarningHours: thresholdsDto.dailyWarningHours,
         weeklyWarningHours: thresholdsDto.weeklyWarningHours,
         weeklyFullTimeHours: thresholdsDto.weeklyFullTimeHours,
+        maxPendingSwapsPerStaff: thresholdsDto.maxPendingSwapsPerStaff,
+        dropExpiryHoursBeforeShift: thresholdsDto.dropExpiryHoursBeforeShift,
+        publishEditCutoffHours: thresholdsDto.publishEditCutoffHours,
+        sixthConsecutiveDayWarning: thresholdsDto.sixthConsecutiveDayWarning,
+        seventhConsecutiveDayBlock: thresholdsDto.seventhConsecutiveDayBlock,
       },
       loaded: true,
     });
@@ -150,6 +155,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     if (next.weeklyWarningHours > next.weeklyFullTimeHours) {
       return { success: false, reason: "The weekly warning threshold can't be higher than the full-time threshold." };
     }
+    if (next.sixthConsecutiveDayWarning > next.seventhConsecutiveDayBlock) {
+      return { success: false, reason: "The 6th-day warning can't be higher than the 7th-day hard block." };
+    }
     try {
       const dto = await setupApi.updateThresholds(patch);
       set({
@@ -159,6 +167,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           dailyWarningHours: dto.dailyWarningHours,
           weeklyWarningHours: dto.weeklyWarningHours,
           weeklyFullTimeHours: dto.weeklyFullTimeHours,
+          maxPendingSwapsPerStaff: dto.maxPendingSwapsPerStaff,
+          dropExpiryHoursBeforeShift: dto.dropExpiryHoursBeforeShift,
+          publishEditCutoffHours: dto.publishEditCutoffHours,
+          sixthConsecutiveDayWarning: dto.sixthConsecutiveDayWarning,
+          seventhConsecutiveDayBlock: dto.seventhConsecutiveDayBlock,
         },
       });
       return { success: true };

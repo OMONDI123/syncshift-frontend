@@ -63,6 +63,15 @@ interface ScheduleState {
   ) => Promise<MutationResult>;
   unassignUser: (shiftId: string, userId: string, actorUserId: string) => Promise<MutationResult>;
   publishLocationWeek: (locationId: string, actorUserId: string) => Promise<MutationResult>;
+  /** Requirement #2: "Unpublish/edit a schedule before a configurable
+   * cutoff." The backend endpoint (`POST /shifts/{id}/unpublish`) already
+   * supported this, override-reason and all — nothing in the UI ever called
+   * it until now. */
+  unpublishShift: (
+    shiftId: string,
+    actorUserId: string,
+    opts?: { expectedVersion?: number; overrideCutoff?: boolean; overrideReason?: string },
+  ) => Promise<MutationResult>;
   createShift: (
     input: { locationId: string; skillRequired: string; headcountNeeded: number; startUtc: string; endUtc: string; notes?: string },
     actorUserId: string,
@@ -224,6 +233,17 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       return { success: true };
     } catch (err) {
       return fromApiError(err, "Couldn't publish this schedule.");
+    }
+  },
+
+  unpublishShift: async (shiftId, _actorUserId, opts) => {
+    try {
+      const dto = await shiftsApi.unpublish(Number(shiftId), opts);
+      const shift = mapShift(dto);
+      set((s) => ({ shifts: s.shifts.map((sh) => (sh.id === shift.id ? shift : sh)) }));
+      return { success: true };
+    } catch (err) {
+      return fromApiError(err, "Couldn't unpublish that shift.");
     }
   },
 

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { toZonedTime } from "date-fns-tz";
+import { isSameDay } from "date-fns";
 import { AppShell } from "@/components/layout/AppShell";
 import { useAuthStore } from "@/store/authStore";
 import { useScheduleStore } from "@/store/scheduleStore";
@@ -8,7 +10,7 @@ import { useUiStore } from "@/store/uiStore";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Badge } from "@/components/common/Badge";
 import { formatShiftRange } from "@/lib/time";
-import type { Shift } from "@/types";
+import type { Location, Shift } from "@/types";
 import { Modal } from "@/components/common/Modal";
 import { Avatar } from "@/components/common/Avatar";
 import { AlertTriangleIcon } from "@/components/icons/Icon";
@@ -46,8 +48,13 @@ export function MyShiftsPage() {
     }
   }
 
-  function isToday(shift: Shift) {
-    return new Date(shift.startUtc).toDateString() === new Date().toDateString();
+  /** Compares "today" in the SHIFT's own location timezone, not the
+   * browser's — a Miami shift starting at 11pm Eastern is "today" for the
+   * person working it even if their device happens to be set to Pacific
+   * time. Matches requirement #8's "users see times in the location's
+   * timezone" rather than mixing in the viewer's local clock. */
+  function isToday(shift: Shift, location: Location) {
+    return isSameDay(toZonedTime(new Date(shift.startUtc), location.timezone), toZonedTime(new Date(), location.timezone));
   }
 
   const eligiblePartners = swapTarget
@@ -98,7 +105,7 @@ export function MyShiftsPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {shift.isPremium && <Badge tone="gold">Premium</Badge>}
-                  {isToday(shift) &&
+                  {isToday(shift, location) &&
                     (clockedIn ? (
                       <button
                         className="rounded-card bg-signal-red px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
