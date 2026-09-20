@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { availabilityApi, ApiRequestError } from "@/lib/api";
 import { mapAvailability } from "@/lib/mappers";
 import type { AvailabilityWindow } from "@/types";
+import { withRetry } from "@/lib/retry";
 
 interface AvailabilityResult {
   success: boolean;
@@ -39,7 +40,7 @@ export const useAvailabilityStore = create<AvailabilityState>((set, get) => ({
   forUser: (userId) => get().windows.filter((w) => w.userId === userId),
 
   loadForUser: async (userId) => {
-    const dtos = await availabilityApi.forUser(Number(userId));
+    const dtos = await withRetry(() => availabilityApi.forUser(Number(userId)), []);
     const fresh = dtos.map(mapAvailability);
     set((s) => ({ windows: [...s.windows.filter((w) => w.userId !== userId), ...fresh], loaded: true }));
   },

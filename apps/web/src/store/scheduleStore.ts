@@ -13,6 +13,7 @@ import { mapLocation, mapShift, mapUser, mapAssignmentCheck } from "@/lib/mapper
 import type { AssignmentCheck, Location, Shift, User } from "@/types";
 import { realtimeClient } from "@/lib/realtime";
 import { useSettingsStore } from "@/store/settingsStore";
+import { withRetry } from "@/lib/retry";
 
 export interface MutationResult {
   success: boolean;
@@ -127,7 +128,10 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
   shiftsForUser: (userId) => get().shifts.filter((s) => s.assignedUserIds.includes(userId)),
 
   loadInitial: async (user) => {
-    const [locationDtos, userDtos] = await Promise.all([locationsApi.list(), usersApi.list()]);
+    const [locationDtos, userDtos] = await Promise.all([
+      withRetry(() => locationsApi.list(), []),
+      withRetry(() => usersApi.list(), []),
+    ]);
     const locations = locationDtos.map(mapLocation);
     const staff = userDtos.map(mapUser);
     const locationsById = Object.fromEntries(locations.map((l) => [l.id, l]));
@@ -141,7 +145,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
           : user.certifiedLocationIds;
 
     const shiftLists = await Promise.all(
-      relevantLocationIds.map((locId) => shiftsApi.listByLocation(Number(locId)).catch(() => [] as ShiftDto[])),
+      relevantLocationIds.map((locId) => withRetry(() => shiftsApi.listByLocation(Number(locId)), [] as ShiftDto[])),
     );
     const byId = new Map<string, Shift>();
     shiftLists.flat().forEach((dto) => byId.set(String(dto.id), mapShift(dto)));

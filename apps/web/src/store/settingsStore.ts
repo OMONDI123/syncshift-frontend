@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { setupApi, ApiRequestError } from "@/lib/api";
 import { mapSkill } from "@/lib/mappers";
 import { DEFAULT_CONSTRAINT_THRESHOLDS, type ConstraintThresholds } from "@/lib/constraints";
+import { withRetry } from "@/lib/retry";
 
 /**
  * Skills and scheduling-rule thresholds are admin-editable data on the
@@ -73,7 +74,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   skillNumericId: (key) => skillsWithBackendId.find((s) => s.id === key)?.backendId,
 
   load: async () => {
-    const [skillDtos, thresholdsDto] = await Promise.all([setupApi.listSkills(), setupApi.getThresholds()]);
+    const [skillDtos, thresholdsDto] = await Promise.all([
+      withRetry(() => setupApi.listSkills(), []),
+      withRetry(() => setupApi.getThresholds(), DEFAULT_CONSTRAINT_THRESHOLDS),
+    ]);
     skillsWithBackendId = skillDtos.map(mapSkill);
     set({
       skills: skillsWithBackendId.map(({ id, label, color }) => ({ id, label, color })),

@@ -3,6 +3,7 @@ import type { ClockRecord } from "@/types";
 import { realtimeClient } from "@/lib/realtime";
 import { presenceApi, ApiRequestError } from "@/lib/api";
 import { mapClockRecord } from "@/lib/mappers";
+import { withRetry } from "@/lib/retry";
 
 interface PresenceState {
   records: ClockRecord[];
@@ -30,7 +31,9 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
   isClockedIn: (userId, shiftId) => get().records.some((r) => r.userId === userId && r.shiftId === shiftId && !r.clockOutUtc),
 
   loadForLocations: async (locationIds) => {
-    const lists = await Promise.all(locationIds.map((id) => presenceApi.onDutyAt(Number(id)).catch(() => [])));
+    const lists = await Promise.all(
+      locationIds.map((id) => withRetry(() => presenceApi.onDutyAt(Number(id)), [])),
+    );
     const fresh = lists.flat().map(mapClockRecord);
     set({ records: fresh, loaded: true });
 

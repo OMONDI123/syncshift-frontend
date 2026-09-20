@@ -3,6 +3,7 @@ import { notificationsApi } from "@/lib/api";
 import { mapNotification } from "@/lib/mappers";
 import type { AppNotification } from "@/types";
 import { realtimeClient } from "@/lib/realtime";
+import { withRetry } from "@/lib/retry";
 
 interface NotificationState {
   notifications: AppNotification[];
@@ -33,7 +34,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCountFor: (userId) => get().notifications.filter((n) => n.userId === userId && !n.read).length,
 
   load: async (userId) => {
-    const dtos = await notificationsApi.list();
+    const dtos = await withRetry(() => notificationsApi.list(), []);
     set({ notifications: dtos.map((dto) => mapNotification(dto, userId)), loaded: true });
 
     if (subscribedUserId === userId) return;

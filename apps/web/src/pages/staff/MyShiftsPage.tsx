@@ -29,6 +29,11 @@ export function MyShiftsPage() {
   const clockOut = usePresenceStore((s) => s.clockOut);
 
   const [swapTarget, setSwapTarget] = useState<Shift | null>(null);
+  // Guards against a double-click firing two clock-in/out requests before
+  // the first resolves — the backend correctly rejects the second with
+  // "Already clocked in", but there's no reason to let that error surface
+  // for something this preventable client-side.
+  const [pendingClockShiftId, setPendingClockShiftId] = useState<string | null>(null);
 
   const myShifts = shiftsForUser(user.id)
     .filter((s) => s.status === "published")
@@ -108,26 +113,32 @@ export function MyShiftsPage() {
                   {isToday(shift, location) &&
                     (clockedIn ? (
                       <button
-                        className="rounded-card bg-signal-red px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                        className="rounded-card bg-signal-red px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={pendingClockShiftId === shift.id}
                         onClick={async () => {
+                          setPendingClockShiftId(shift.id);
                           const result = await clockOut(user.id, shift.id);
+                          setPendingClockShiftId(null);
                           showToast(result.success ? "info" : "error", result.success ? "Clocked out." : result.reason ?? "Couldn't clock out.");
                         }}
                       >
-                        Clock out
+                        {pendingClockShiftId === shift.id ? "Clocking out…" : "Clock out"}
                       </button>
                     ) : (
                       <button
-                        className="rounded-card bg-signal-green px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90"
+                        className="rounded-card bg-signal-green px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={pendingClockShiftId === shift.id}
                         onClick={async () => {
+                          setPendingClockShiftId(shift.id);
                           const result = await clockIn(user.id, shift.id);
+                          setPendingClockShiftId(null);
                           showToast(
                             result.success ? "success" : "error",
                             result.success ? "Clocked in — you're now on the On Duty board." : result.reason ?? "Couldn't clock in.",
                           );
                         }}
                       >
-                        Clock in
+                        {pendingClockShiftId === shift.id ? "Clocking in…" : "Clock in"}
                       </button>
                     ))}
                   <button className="btn-secondary" onClick={() => setSwapTarget(shift)}>

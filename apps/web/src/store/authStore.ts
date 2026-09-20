@@ -38,7 +38,17 @@ function buildSession(token: string, userId: string, expiresInMinutes: number): 
 /** Loads every store the app needs data from, all keyed off the freshly
  * signed-in user's role. Order matters a little: schedule (locations +
  * shifts) and settings (skills + thresholds) go first since swaps,
- * presence, and the assignment-check engine all read from them. */
+ * presence, and the assignment-check engine all read from them.
+ *
+ * Presence is deliberately NOT loaded here for admins/managers — it's
+ * fetched lazily when OnDutyPage actually mounts instead (see its own
+ * effect). Staff keep it eager since they typically only have 1-2
+ * certified locations and need their own clock-in state immediately on
+ * "My Shifts", their usual landing page. For an admin covering every
+ * location, or a manager with several, this alone removes N parallel
+ * requests from the login burst — the earlier root cause of the on-duty
+ * board and a staff member's own clock-in state going silently empty
+ * under load (see lib/retry.ts for the other half of that fix). */
 async function bootstrapAppData(user: User) {
   realtimeClient.connect();
   await Promise.all([useScheduleStore.getState().loadInitial(user), useSettingsStore.getState().load()]);
@@ -54,7 +64,7 @@ async function bootstrapAppData(user: User) {
     useSwapStore.getState().load(user),
     useNotificationStore.getState().load(user.id),
     useAvailabilityStore.getState().loadForUser(user.id),
-    usePresenceStore.getState().loadForLocations(relevantLocationIds),
+    user.role === "STAFF" ? usePresenceStore.getState().loadForLocations(relevantLocationIds) : Promise.resolve(),
   ]);
 }
 
@@ -75,7 +85,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       const full = await usersApi.get(summary.id);
       const user = mapUser(full);
       set({ currentUser: user, session: buildSession(token, user.id, 45), hydrated: true });
-      await bootstrapAppData(user);
+      // A failure here is now caught separately from the auth check above:
+      // bootstrapAppData's individual loaders already retry transient
+      // failures internally (see lib/retry.ts), but if something still
+      // genuinely fails, that should never log a just-verified, valid
+      // session back out — it used to, because this whole function shared
+      // one try/catch, so one flaky request in the ~15-request login burst
+      // could silently bounce a real user back to the login screen even
+      // though their credentials were fine.
+      try {
+        await bootstrapAppData(user);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("Some app data failed to load after login; staying signed in.", err);
+      }
     } catch {
       clearToken();
       set({ currentUser: null, session: null, hydrated: true });
@@ -95,7 +118,15 @@ export const useAuthStore = create<AuthState>((set) => ({
         loading: false,
         hydrated: true,
       });
-      await bootstrapAppData(user);
+      // Same fix as hydrate() above: don't let a flaky secondary request
+      // report the login itself as failed when the credentials were fine
+      // and the session is already set.
+      try {
+        await bootstrapAppData(user);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("Some app data failed to load after login; continuing anyway.", err);
+      }
       return { success: true };
     } catch (err) {
       set({ loading: false });

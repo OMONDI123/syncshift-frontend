@@ -4,6 +4,7 @@ import { mapSwap } from "@/lib/mappers";
 import type { SwapRequest, User } from "@/types";
 import { useScheduleStore } from "@/store/scheduleStore";
 import { realtimeClient } from "@/lib/realtime";
+import { withRetry } from "@/lib/retry";
 
 interface SwapResult {
   success: boolean;
@@ -74,9 +75,9 @@ export const useSwapStore = create<SwapState>((set, get) => ({
   load: async (user) => {
     const isManagerLike = user.role === "ADMIN" || user.role === "MANAGER";
     const [openDtos, mineDtos, approvalDtos] = await Promise.all([
-      swapsApi.open().catch(() => []),
-      swapsApi.mine().catch(() => []),
-      isManagerLike ? swapsApi.pendingApprovals().catch(() => []) : Promise.resolve([]),
+      withRetry(() => swapsApi.open(), []),
+      withRetry(() => swapsApi.mine(), []),
+      isManagerLike ? withRetry(() => swapsApi.pendingApprovals(), []) : Promise.resolve([]),
     ]);
     const byId = new Map<string, SwapRequest>();
     [...openDtos, ...mineDtos, ...approvalDtos].forEach((dto) => byId.set(String(dto.id), mapSwap(dto)));
