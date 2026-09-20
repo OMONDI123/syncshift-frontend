@@ -63,6 +63,15 @@ export function ScheduleBoardPage() {
 
   async function handlePublish() {
     if (!location) return;
+    const draftShifts = locationShifts.filter((s) => s.status === "draft");
+    const unassignedCount = draftShifts.filter((s) => s.assignedUserIds.length === 0).length;
+    if (unassignedCount > 0) {
+      const proceed = window.confirm(
+        `${unassignedCount} of the shifts you're about to publish ${unassignedCount === 1 ? "has" : "have"} nobody assigned yet. ` +
+          `Nobody will be notified for those, and no one will be able to clock in until you assign staff. Publish anyway?`,
+      );
+      if (!proceed) return;
+    }
     const result = await publishLocationWeek(location.id, user.id);
     if (result.success) {
       showToast("success", `${location.name}'s schedule was published. Staff have been notified.`);
@@ -215,6 +224,10 @@ export function ScheduleBoardPage() {
           location={location}
           initialDate={createPrefillDate}
           onClose={() => setShowCreateModal(false)}
+          onCreated={(shiftId) => {
+            const created = useScheduleStore.getState().shifts.find((s) => s.id === shiftId);
+            if (created) setOpenShift(created);
+          }}
         />
       )}
     </AppShell>

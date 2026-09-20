@@ -20,6 +20,13 @@ export interface MutationResult {
   conflict?: boolean;
   unauthorized?: boolean;
   reason?: string;
+  /** Set by createShift on success so callers (the "Create shift" modal)
+   * can immediately open the Assign drawer for it — a brand new shift has
+   * zero assigned staff, which means no one gets notified on publish and
+   * no one can clock in, so nudging straight into assignment prevents a
+   * manager from creating a shift, publishing it, and wondering why staff
+   * never heard about it. */
+  shiftId?: string;
 }
 
 export interface NewLocationInput {
@@ -261,7 +268,7 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       });
       const shift = mapShift(dto);
       set((s) => ({ shifts: [...s.shifts, shift] }));
-      return { success: true };
+      return { success: true, shiftId: shift.id };
     } catch (err) {
       return fromApiError(err, "Couldn't create that shift.");
     }

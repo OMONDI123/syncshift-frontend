@@ -21,10 +21,14 @@ export function CreateShiftModal({
   location,
   initialDate,
   onClose,
+  onCreated,
 }: {
   location: Location;
   initialDate?: string;
   onClose: () => void;
+  /** Called with the new shift's id right after a successful create, before
+   * onClose — lets the caller chain straight into assigning staff. */
+  onCreated?: (shiftId: string) => void;
 }) {
   const createShift = useScheduleStore((s) => s.createShift);
   const skills = useSettingsStore((s) => s.skills);
@@ -63,7 +67,8 @@ export function CreateShiftModal({
     setSaving(false);
 
     if (result.success) {
-      showToast("success", "Shift created as a draft. Publish the week to make it visible to staff.");
+      showToast("success", "Shift created as a draft — now assign staff so publishing actually notifies someone.");
+      if (result.shiftId) onCreated?.(result.shiftId);
       onClose();
     } else {
       setError(result.reason ?? "Couldn't create that shift.");
