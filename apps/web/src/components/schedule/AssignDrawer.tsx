@@ -8,6 +8,7 @@ import { Avatar } from "@/components/common/Avatar";
 import { ConstraintExplainer } from "@/components/schedule/ConstraintExplainer";
 import { formatShiftRange } from "@/lib/time";
 import { SearchIcon, AlertTriangleIcon, CheckIcon } from "@/components/icons/Icon";
+import { realtimeClient } from "@/lib/realtime";
 
 export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => void }) {
   const user = useAuthStore((s) => s.currentUser)!;
@@ -26,6 +27,24 @@ export function AssignDrawer({ shift, onClose }: { shift: Shift; onClose: () => 
   const [openedVersion] = useState(shift.version);
   const liveShift = shifts.find((s) => s.id === shift.id) ?? shift;
   const staleWarning = liveShift.version !== openedVersion;
+
+  // "Simultaneous Assignment" scenario, third-party-viewer half: the manager
+  // whose own request loses a race already sees it via the 409/422 response
+  // to their own call (see handleAssign below). This subscription covers
+  // anyone else who has this SAME shift's drawer open at the moment another
+  // manager's edit or assignment wins the race — the backend pushes to
+  // `/topic/shifts/{id}/conflict` specifically so this drawer can say so
+  // immediately instead of the person only finding out on their next action.
+  useEffect(() => {
+    const unsubscribe = realtimeClient.subscribe(`/topic/shifts/${shift.id}/conflict`, (payload) => {
+      const message =
+        payload && typeof payload === "object" && "message" in payload
+          ? String((payload as { message: unknown }).message)
+          : "Someone else just changed this shift.";
+      showToast("error", message);
+    });
+    return unsubscribe;
+  }, [shift.id, showToast]);
 
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);

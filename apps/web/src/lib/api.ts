@@ -169,6 +169,7 @@ export interface CreateUserRequestDto {
   desiredWeeklyHours?: number;
   hourlyRate?: number;
   homeTimezone: string;
+  notificationChannel?: string;
 }
 
 export type UpdateUserRequestDto = Partial<CreateUserRequestDto>;
@@ -179,6 +180,11 @@ export const usersApi = {
   create: (body: CreateUserRequestDto) => post<UserDto>("/users", body),
   update: (id: number, body: UpdateUserRequestDto) => put<UserDto>(`/users/${id}`, body),
   setActive: (id: number, active: boolean) => patch<UserDto>(`/users/${id}/active`, { active }),
+  /** Self-service only — updates the CALLING user's own notificationChannel.
+   * Backed by PATCH /users/me/notification-preference, which (unlike every
+   * other /users endpoint) isn't admin-gated. */
+  updateMyNotificationPreference: (notificationChannel: string) =>
+    patch<UserDto>("/users/me/notification-preference", { notificationChannel }),
 };
 
 // --- Locations / skills (read-only convenience routes) ---------------------

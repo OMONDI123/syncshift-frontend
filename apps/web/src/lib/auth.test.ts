@@ -13,6 +13,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     certifiedLocationIds: [],
     managedLocationIds: ["loc-a"],
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
     ...overrides,
   };

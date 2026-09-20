@@ -5,6 +5,12 @@
 
 export type Role = "ADMIN" | "MANAGER" | "STAFF";
 
+/** How a user wants to be reached for notifications — mirrors the backend's
+ * NotificationChannel enum verbatim (kept uppercase, same convention as
+ * Role, rather than lowercased like the internal display-only unions
+ * below). Email is simulated (logged server-side), never actually sent. */
+export type NotificationChannel = "IN_APP_ONLY" | "IN_APP_AND_EMAIL";
+
 /**
  * Skills are an admin-managed catalog (see settingsStore), not a fixed set —
  * this is just the id of a SkillDef. It stays a plain string rather than a
@@ -32,6 +38,10 @@ export interface User {
   /** IANA timezone this person's own clock/availability is anchored to —
    * independent of any location's timezone. See constraints.ts. */
   homeTimezone: string;
+  /** Requirement #7: "Users configure their notification preferences
+   * (in-app only, or in-app + email simulation)." Self-editable via
+   * usersApi.updateMyNotificationPreference — see NotificationCenter. */
+  notificationChannel: NotificationChannel;
   /** Deactivated accounts are kept (never deleted) so historical shift and
    * audit records stay intact, but can no longer sign in or be assigned. */
   active: boolean;

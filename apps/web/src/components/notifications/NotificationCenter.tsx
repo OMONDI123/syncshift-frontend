@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -17,11 +18,21 @@ const kindIcon: Record<NotificationKind, string> = {
 
 export function NotificationCenter({ onClose }: { onClose?: () => void }) {
   const user = useAuthStore((s) => s.currentUser);
+  const updateNotificationChannel = useAuthStore((s) => s.updateNotificationChannel);
   const items = useNotificationStore((s) => (user ? s.forUser(user.id) : []));
   const markRead = useNotificationStore((s) => s.markRead);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
+  const [savingPreference, setSavingPreference] = useState(false);
 
   if (!user) return null;
+
+  const emailAlsoOn = user.notificationChannel === "IN_APP_AND_EMAIL";
+
+  async function toggleEmailPreference() {
+    setSavingPreference(true);
+    await updateNotificationChannel(emailAlsoOn ? "IN_APP_ONLY" : "IN_APP_AND_EMAIL");
+    setSavingPreference(false);
+  }
 
   return (
     <div className="panel max-h-[70vh] overflow-hidden">
@@ -34,6 +45,16 @@ export function NotificationCenter({ onClose }: { onClose?: () => void }) {
           Mark all read
         </button>
       </div>
+      <label className="flex items-center justify-between gap-3 border-b border-ink-900/10 px-4 py-2.5 text-xs text-ink-600">
+        <span>Also email me (simulated)</span>
+        <input
+          type="checkbox"
+          checked={emailAlsoOn}
+          disabled={savingPreference}
+          onChange={toggleEmailPreference}
+          aria-label="Also send notifications by simulated email"
+        />
+      </label>
       <div className="max-h-[55vh] overflow-y-auto">
         {items.length === 0 ? (
           <div className="p-4">

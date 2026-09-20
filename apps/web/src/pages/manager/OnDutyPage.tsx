@@ -6,7 +6,6 @@ import { usePresenceStore } from "@/store/presenceStore";
 import { Avatar } from "@/components/common/Avatar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { formatDistanceToNow } from "date-fns";
-import { realtimeClient } from "@/lib/realtime";
 
 export function OnDutyPage() {
   const user = useAuthStore((s) => s.currentUser)!;
@@ -17,16 +16,15 @@ export function OnDutyPage() {
   const records = usePresenceStore((s) => s.records);
   const [, forceTick] = useState(0);
 
-  // Re-render on presence pub/sub events so this reads as a live board,
-  // and tick every 30s so "clocked in Xm ago" stays fresh.
+  // Ticks the clock every 30s so "clocked in Xm ago" stays fresh. Actual
+  // live presence data already flows through usePresenceStore's own
+  // subscription to `/topic/locations/{id}/presence` (see presenceStore.ts)
+  // and re-renders this page via the `records` selector above — this effect
+  // doesn't need its own duplicate subscription to that topic.
   useEffect(() => {
-    const unsubs = locations.map((l) => realtimeClient.subscribe(`presence:${l.id}`, () => forceTick((n) => n + 1)));
     const interval = setInterval(() => forceTick((n) => n + 1), 30_000);
-    return () => {
-      unsubs.forEach((u) => u());
-      clearInterval(interval);
-    };
-  }, [locations]);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <AppShell title="On duty now" subtitle="Live clock-in status across the locations you manage">

@@ -91,6 +91,7 @@ export function mapUser(dto: UserDto): User {
     managedLocationIds: dto.managedLocationIds.map(id),
     desiredWeeklyHours: dto.desiredWeeklyHours ?? undefined,
     homeTimezone: dto.homeTimezone,
+    notificationChannel: (dto.notificationChannel as User["notificationChannel"]) ?? "IN_APP_ONLY",
     active: dto.active,
   };
 }

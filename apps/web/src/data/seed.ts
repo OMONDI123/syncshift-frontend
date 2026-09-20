@@ -28,6 +28,7 @@ export const users: User[] = [
     certifiedLocationIds: [],
     managedLocationIds: [],
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -40,6 +41,7 @@ export const users: User[] = [
     certifiedLocationIds: [],
     managedLocationIds: ["loc-sea", "loc-pdx"],
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -52,6 +54,7 @@ export const users: User[] = [
     certifiedLocationIds: [],
     managedLocationIds: ["loc-mia", "loc-bos"],
     homeTimezone: "America/New_York",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   // Staff — West coast
@@ -66,6 +69,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 30,
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -79,6 +83,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 35,
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -92,6 +97,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 32,
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -105,6 +111,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 20,
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   // Staff — East coast
@@ -119,6 +126,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 34,
     homeTimezone: "America/New_York",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -132,6 +140,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 40,
     homeTimezone: "America/New_York",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   {
@@ -145,6 +154,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 25,
     homeTimezone: "America/New_York",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
   // Staff certified cross-country — the "Timezone Tangle" case:
@@ -160,6 +170,7 @@ export const users: User[] = [
     managedLocationIds: [],
     desiredWeeklyHours: 30,
     homeTimezone: "America/Los_Angeles",
+    notificationChannel: "IN_APP_ONLY",
     active: true,
   },
 ];

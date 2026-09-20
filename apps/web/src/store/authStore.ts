@@ -18,6 +18,12 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; reason?: string }>;
   logout: () => void;
   hydrate: () => Promise<void>;
+  /** Requirement #7: lets the signed-in user change their OWN notification
+   * channel (in-app only vs in-app + email simulation). Backed by the
+   * self-service PATCH /users/me/notification-preference endpoint. */
+  updateNotificationChannel: (
+    channel: User["notificationChannel"],
+  ) => Promise<{ success: boolean; reason?: string }>;
 }
 
 function buildSession(token: string, userId: string, expiresInMinutes: number): Session {
@@ -105,5 +111,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     clearToken();
     realtimeClient.disconnect();
     set({ currentUser: null, session: null });
+  },
+
+  updateNotificationChannel: async (channel) => {
+    try {
+      const dto = await usersApi.updateMyNotificationPreference(channel);
+      const updated = mapUser(dto);
+      set((s) => (s.currentUser ? { currentUser: { ...s.currentUser, notificationChannel: updated.notificationChannel } } : {}));
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        reason: err instanceof ApiRequestError ? err.message : "Couldn't update your notification preference.",
+      };
+    }
   },
 }));
