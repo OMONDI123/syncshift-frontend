@@ -40,15 +40,14 @@ function buildSession(token: string, userId: string, expiresInMinutes: number): 
  * shifts) and settings (skills + thresholds) go first since swaps,
  * presence, and the assignment-check engine all read from them.
  *
- * Presence is deliberately NOT loaded here for admins/managers — it's
- * fetched lazily when OnDutyPage actually mounts instead (see its own
- * effect). Staff keep it eager since they typically only have 1-2
- * certified locations and need their own clock-in state immediately on
- * "My Shifts", their usual landing page. For an admin covering every
- * location, or a manager with several, this alone removes N parallel
- * requests from the login burst — the earlier root cause of the on-duty
- * board and a staff member's own clock-in state going silently empty
- * under load (see lib/retry.ts for the other half of that fix). */
+ * Presence used to be deferred for admins/managers until OnDutyPage
+ * mounted, to shrink the login burst. That introduced a worse problem
+ * than it solved (a mount-timing edge case left the on-duty board
+ * genuinely empty for some admins/managers), so it's back to loading
+ * eagerly for every role here — the actual fix for the original burst
+ * issue is the retry-with-backoff wrapper (lib/retry.ts) on every one of
+ * these calls, not removing the data. OnDutyPage still refreshes it again
+ * on mount as a belt-and-braces "give me the freshest state" call. */
 async function bootstrapAppData(user: User) {
   realtimeClient.connect();
   await Promise.all([useScheduleStore.getState().loadInitial(user), useSettingsStore.getState().load()]);
@@ -64,7 +63,7 @@ async function bootstrapAppData(user: User) {
     useSwapStore.getState().load(user),
     useNotificationStore.getState().load(user.id),
     useAvailabilityStore.getState().loadForUser(user.id),
-    user.role === "STAFF" ? usePresenceStore.getState().loadForLocations(relevantLocationIds) : Promise.resolve(),
+    usePresenceStore.getState().loadForLocations(relevantLocationIds),
   ]);
 }
 

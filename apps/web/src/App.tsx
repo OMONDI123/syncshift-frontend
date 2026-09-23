@@ -6,6 +6,7 @@ import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ForbiddenPage } from "@/pages/ForbiddenPage";
 import { ScheduleBoardPage } from "@/pages/manager/ScheduleBoardPage";
+import { SwapApprovalsPage } from "@/pages/manager/SwapApprovalsPage";
 import { OnDutyPage } from "@/pages/manager/OnDutyPage";
 import { OvertimeDashboardPage } from "@/pages/manager/OvertimeDashboardPage";
 import { FairnessPage } from "@/pages/manager/FairnessPage";
@@ -56,6 +57,14 @@ export function App() {
         element={
           <RequireRole roles={["MANAGER", "ADMIN"]}>
             <OnDutyPage />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/swap-approvals"
+        element={
+          <RequireRole roles={["MANAGER", "ADMIN"]}>
+            <SwapApprovalsPage />
           </RequireRole>
         }
       />

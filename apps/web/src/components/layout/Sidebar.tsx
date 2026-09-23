@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useUiStore } from "@/store/uiStore";
+import { useScheduleStore } from "@/store/scheduleStore";
+import { useSwapStore } from "@/store/swapStore";
 import { Avatar } from "@/components/common/Avatar";
 import { Badge } from "@/components/common/Badge";
 import {
@@ -31,6 +33,7 @@ const sections: { title: string; items: NavItem[] }[] = [
     title: "Scheduling",
     items: [
       { to: "/schedule", label: "Schedule board", icon: <CalendarIcon size={17} />, roles: ["MANAGER", "ADMIN"] },
+      { to: "/swap-approvals", label: "Swap approvals", icon: <ShuffleIcon size={17} />, roles: ["MANAGER", "ADMIN"] },
       { to: "/on-duty", label: "On duty now", icon: <MoonIcon size={17} />, roles: ["MANAGER", "ADMIN"] },
       { to: "/my-shifts", label: "My shifts", icon: <CalendarIcon size={17} />, roles: ["STAFF"] },
       { to: "/availability", label: "My availability", icon: <ClockIcon size={17} />, roles: ["STAFF"] },
@@ -62,6 +65,10 @@ export function Sidebar() {
   const logout = useAuthStore((s) => s.logout);
   const sidebarOpen = useUiStore((s) => s.sidebarOpen);
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
+  const locations = useScheduleStore((s) => s.locations);
+  const approvalLocationIds =
+    user?.role === "ADMIN" ? locations.map((l) => l.id) : user?.managedLocationIds ?? [];
+  const pendingApprovalCount = useSwapStore((s) => s.pendingApprovalsFor(approvalLocationIds).length);
   if (!user) return null;
 
   const content = (
@@ -110,6 +117,11 @@ export function Sidebar() {
                   >
                     {item.icon}
                     {item.label}
+                    {item.to === "/swap-approvals" && pendingApprovalCount > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-signal-red px-1.5 text-[11px] font-bold text-white">
+                        {pendingApprovalCount}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </div>
